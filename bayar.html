@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <title>Scanner Kasir Alishamart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    #reader {
+      width: 90%;
+      height: 20%;
+      margin: 10px auto;
+      border: 2px solid #333;
+      border-radius: 8px;
+      margin-top: 5%;
+      margin-bottom: -0%;
+      background: black;
+    }
+    #hasilScan {
+      max-width: 400px;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      font-family: sans-serif;
+    }
+    form#formCariManual {
+      max-width: 400px;
+      margin: 10px auto;
+      display: flex;
+      gap: 8px;
+    }
+    #inputBarcode {
+      flex: 1;
+      padding: 8px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 8px 12px;
+      font-size: 16px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <h2 style="text-align:center;">Kasir Scanner Alishamart</h2>
+  <div id="reader"></div>
+  <div id="hasilScan">Silakan scan barcode atau cari manual</div>
+
+  <form id="formCariManual">
+    <input id="inputBarcode" type="text" placeholder="Masukkan kode barcode..." autocomplete="off" />
+    <button type="submit">Cari</button>
+  </form>
+
+  <!-- Library html5-qrcode -->
+ <script src="https://unpkg.com/html5-qrcode@2.3.7/minified/html5-qrcode.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+import { 
+  getDatabase, 
+  ref, 
+  push, 
+  set, 
+  update,
+  query,
+  orderByChild,
+  equalTo,
+  get
+} from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC7bRbulHJ3D1VWpooXWka42MhOuIKgrVU",
+    authDomain: "alisahmart-f8a62.firebaseapp.com",
+    databaseURL: "https://alisahmart-f8a62-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "alisahmart-f8a62",
+    storageBucket: "alisahmart-f8a62.appspot.com",
+    messagingSenderId: "852965892731",
+    appId: "1:852965892731:web:89a310bc1794aaf904b8de"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  let keranjang = [];
+
+  async function cariBarang(barcode) {
+    try {
+      const q = query(ref(db, "stok"), orderByChild("barcode"), equalTo(barcode.trim()));
+      const snapshot = await get(q);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const key = Object.keys(data)[0];
+        return { ...data[key], key };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error saat mencari barang:", error);
+      return null;
+    }
+  }
+
+function renderKeranjang() {
+  const hasilScanEl = document.getElementById("hasilScan");
+  if (!hasilScanEl) return;
+
+  if (keranjang.length === 0) {
+    hasilScanEl.innerHTML = `<div class="empty">Keranjang masih kosong.</div>`;
+    return;
+  }
+
+  let totalHarga = 0;
+  let itemsHTML = '';
+  keranjang.forEach((item, i) => {
+    const subtotal = item.jumlah * item.harga;
+    totalHarga += subtotal;
+
+    itemsHTML += `
+      <div class="item" data-index="${i}" style="margin-bottom: 8px; padding: 8px; background: #f1f1f1; border-radius: 6px; display: flex; align-items: center;">
+        <div style="flex-grow: 1;">${item.nama}</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button class="btn-minus" data-index="${i}" style="padding: 2px 8px;">-</button>
+          <input type="number" class="input-jumlah" data-index="${i}"
+                 value="${item.jumlah}" min="1" max="${item.stok}"
+                 style="width: 50px; text-align: center;" />
+          <button class="btn-plus" data-index="${i}" style="padding: 2px 8px;">+</button>
+        </div>
+        <div style="margin-left: 16px; min-width: 100px; text-align: right;">
+          Rp ${subtotal.toLocaleString()}
+        </div>
+        <button class="btn-hapus" data-index="${i}" style="margin-left: 8px; background:red; color:white; border:none; padding:4px 8px; border-radius:4px;">❌</button>
+      </div>
+    `;
+  });
+
+  hasilScanEl.innerHTML = `
+    <div class="keranjang">
+      ${itemsHTML}
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #ddd;">
+        <div style="display: flex; justify-content: space-between;">
+          <strong>Total:</strong>
+          <strong>Rp ${totalHarga.toLocaleString()}</strong>
+        </div>
+      </div>
+      <button id="btnCheckout" style="margin-top: 16px; width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 16px;">Checkout</button>
+    </div>
+  `;
+
+  // Pasang event listener tombol plus
+  hasilScanEl.querySelectorAll('.btn-plus').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const i = Number(e.target.dataset.index);
+      ubahJumlah(i, keranjang[i].jumlah + 1);
+    });
+  });
+
+  // Pasang event listener tombol minus
+  hasilScanEl.querySelectorAll('.btn-minus').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const i = Number(e.target.dataset.index);
+      ubahJumlah(i, keranjang[i].jumlah - 1);
+    });
+  });
+
+  // Pasang event listener input jumlah
+  hasilScanEl.querySelectorAll('.input-jumlah').forEach(input => {
+    input.addEventListener('input', e => {
+      const i = Number(e.target.dataset.index);
+      ubahJumlah(i, e.target.value);
+    });
+  });
+
+  // Pasang event listener hapus
+  hasilScanEl.querySelectorAll('.btn-hapus').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const i = Number(e.target.dataset.index);
+      hapusDariKeranjang(i);
+    });
+  });
+
+  // Event listener checkout
+  document.getElementById("btnCheckout").addEventListener("click", prosesPembayaran);
+}
+
+function ubahJumlah(index, newValue) {
+  newValue = parseInt(newValue);
+  if (isNaN(newValue)) return;
+
+  if (newValue > keranjang[index].stok) {
+    alert(`Stok ${keranjang[index].nama} hanya tersedia ${keranjang[index].stok}`);
+    newValue = keranjang[index].stok;
+  }
+  
+  if (newValue < 1) newValue = 1;
+
+  keranjang[index].jumlah = newValue;
+  renderKeranjang();
+}
+
+function hapusDariKeranjang(index) {
+  if (confirm(`Hapus ${keranjang[index].nama} dari keranjang?`)) {
+    keranjang.splice(index, 1);
+    renderKeranjang();
+  }
+}
+
+// Bagian prosesPembayaran
+async function prosesPembayaran() {
+  if (keranjang.length === 0) {
+    alert("Keranjang kosong.");
+    return;
+  }
+
+  const now = new Date();
+const tanggal = now.toISOString().slice(0, 10); // yyyy-mm-dd
+const jam = now.toTimeString().split(' ')[0];   // hh:mm:ss
+
+const namaBulan = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+
+const tahun = now.getFullYear();
+const bulanNama = namaBulan[now.getMonth()]; // ambil nama bulan
+const hari = String(now.getDate()).padStart(2, "0");
+
+// Contoh gabung:
+const tanggalLengkap = `${hari} ${bulanNama} ${tahun} pukul ${jam}`;
+console.log(tanggalLengkap);
+
+
+  const penjualanRef = ref(db, `penjualan_hari_ini/${tanggal}/`);
+
+  for (const item of keranjang) {
+    const hargaJual = Number(item.harga);
+    const modal = Number(item.modal);
+    const jumlahBeli = item.jumlah;
+    const total = hargaJual * jumlahBeli;
+    const untung = (hargaJual - modal) * jumlahBeli;
+
+    const newRef = push(penjualanRef); // auto ID
+    const id = newRef.key;
+
+    const dataPenjualan = {
+      id: id,
+      nama: item.nama,
+      harga: hargaJual,
+      jumlah: jumlahBeli,
+      total: total,
+      keuntungan: untung,
+      hari: hari,
+      bulan: bulanNama,
+      tahun: tahun,
+      jam: jam
+    };
+
+    await set(newRef, dataPenjualan);
+
+    console.log("✅ Data penjualan terkirim:", dataPenjualan);
+
+    // Update stok
+    const stokRef = ref(db, `stok/${item.key}`);
+    await update(stokRef, {
+      jumlah: item.stok - jumlahBeli,
+      terjual: (item.terjual || 0) + jumlahBeli,
+      keuntungan: (item.keuntungan || 0) + untung
+    });
+  }
+
+  alert("✅ Pembayaran berhasil!");
+  keranjang = [];
+  renderKeranjang();
+}
+
+function tambahKeKeranjang(barang, jumlahBeli) {
+  const sudahAda = keranjang.find(item => item.key === barang.key);
+  if (sudahAda) {
+    sudahAda.jumlah += jumlahBeli;
+  } else {
+    keranjang.push({
+      key: barang.key,
+      nama: barang.nama,
+      harga: Number(barang.harga_jual),
+      modal: Number(barang.harga_modal), // ⬅️ ini yang penting
+      jumlah: jumlahBeli,
+      stok: barang.jumlah,
+      terjual: barang.terjual || 0,
+      keuntungan: barang.keuntungan || 0
+    });
+  }
+  renderKeranjang();
+}
+
+
+  function tampilkanBarang(barang, barcode) {
+    const hasilScanEl = document.getElementById("hasilScan");
+    if (!hasilScanEl) return;
+
+    if (barang) {
+      tambahKeKeranjang(barang, 1); // langsung masukkan ke keranjang
+    } else {
+      hasilScanEl.innerHTML = `
+        <div style="background: #f8d7da; padding: 16px; border-radius: 8px;">
+          <h3>❌ Barcode tidak ditemukan</h3>
+          <p>Barcode: <strong>${barcode}</strong></p>
+        </div>
+      `;
+    }
+  }
+
+  async function mulaiScanner() {
+    try {
+      const html5QrCode = new Html5Qrcode("reader");
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        async (barcode) => {
+          document.getElementById("hasilScan").innerHTML = `<div>Memproses...</div>`;
+          await html5QrCode.stop();
+          const barang = await cariBarang(barcode);
+          tampilkanBarang(barang, barcode);
+          setTimeout(() => mulaiScanner(), 200);
+        }
+      );
+    } catch (err) {
+      console.error("Gagal memulai scanner:", err);
+      document.getElementById("hasilScan").innerHTML = `<div class="error">Tidak dapat mengakses kamera: ${err.message}</div>`;
+    }
+  }
+
+  function setupPencarianManual() {
+    const formCari = document.getElementById("formCariManual");
+    const inputBarcode = document.getElementById("inputBarcode");
+
+    if (!formCari || !inputBarcode) return;
+
+    formCari.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const barcode = inputBarcode.value.trim();
+      if (!barcode) return alert("Masukkan barcode dulu!");
+
+      const barang = await cariBarang(barcode);
+      tampilkanBarang(barang, barcode);
+      inputBarcode.value = "";
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      document.getElementById("hasilScan").innerHTML = `<div>Browser tidak mendukung kamera.</div>`;
+    } else {
+      mulaiScanner();
+    }
+    setupPencarianManual();
+  });
+</script>
+</body>
+</html>

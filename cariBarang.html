@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cari Barang Responsive</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-4">
+
+  <!-- Search Input -->
+  <div class="w-full max-w-md mb-6 flex gap-2">
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Cari barang..."
+      class="flex-grow p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+    />
+    <button
+      onclick="searchItem()"
+      class="bg-blue-600 text-white px-4 rounded-md hover:bg-blue-700 transition"
+    >
+      Cari
+    </button>
+  </div>
+
+  <!-- Table Wrapper (scrollable on small screens) -->
+  <div class="w-full max-w-4xl overflow-x-auto bg-white rounded-md shadow-md">
+    <table
+      id="stokTable"
+      class="min-w-[700px] w-full text-left border-collapse"
+    >
+      <thead class="bg-blue-600 text-white">
+        <tr>
+          <th class="py-3 px-4">Nama</th>
+          <th class="py-3 px-4">Barcode</th>
+          <th class="py-3 px-4">Jumlah</th>
+          <th class="py-3 px-4">Harga Jual</th>
+          <th class="py-3 px-4">Harga Modal</th>
+          <th class="py-3 px-4">Terjual</th>
+          <th class="py-3 px-4">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="stokBody" class="divide-y divide-gray-200"></tbody>
+    </table>
+   <div id="notFoundMessage" class="text-red-500 text-center text-2xl mt-20 hidden"></div>
+
+
+  </div>
+
+  <!-- Modal Edit -->
+  <div
+    id="editModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 hidden"
+  >
+    <div
+      class="bg-white rounded-lg max-w-md w-full p-6 shadow-lg relative"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <h3 id="modal-title" class="text-xl font-semibold mb-4">Edit Stok</h3>
+      <form id="editForm" class="space-y-4">
+        <input type="hidden" id="editId" />
+        <div>
+          <label for="editNama" class="block font-medium mb-1">Nama:</label>
+          <input
+            type="text"
+            id="editNama"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <label for="editBarcode" class="block font-medium mb-1">Barcode:</label>
+          <input
+            type="text"
+            id="editBarcode"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <label for="editJumlah" class="block font-medium mb-1">Jumlah:</label>
+          <input
+            type="number"
+            id="editJumlah"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <label for="editHargaJual" class="block font-medium mb-1">Harga Jual:</label>
+          <input
+            type="number"
+            id="editHargaJual"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <label for="editHargaModal" class="block font-medium mb-1">Harga Modal:</label>
+          <input
+            type="number"
+            id="editHargaModal"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <label for="editTerjual" class="block font-medium mb-1">Terjual:</label>
+          <input
+            type="number"
+            id="editTerjual"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div class="flex justify-end gap-3 mt-4">
+          <button
+            type="button"
+            onclick="closeModal()"
+            class="px-4 py-2 border rounded-md hover:bg-gray-100 transition"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+          >
+            Simpan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import {
+    getDatabase,
+    ref,
+    onValue,
+    update,
+    remove,
+    get,
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC7bRbulHJ3D1VWpooXWka42MhOuIKgrVU",
+    authDomain: "alisahmart-f8a62.firebaseapp.com",
+    databaseURL:
+      "https://alisahmart-f8a62-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "alisahmart-f8a62",
+    storageBucket: "alisahmart-f8a62.appspot.com",
+    messagingSenderId: "852965892731",
+    appId: "1:852965892731:web:89a310bc1794aaf904b8de",
+    measurementId: "G-LPBH8TXQEM",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const stokRef = ref(db, "stok");
+
+  const stokBody = document.getElementById("stokBody");
+  const editModal = document.getElementById("editModal");
+  const editForm = document.getElementById("editForm");
+
+  // Render data realtime
+  onValue(stokRef, (snapshot) => {
+    const data = snapshot.val() || {};
+    stokBody.innerHTML = "";
+
+    Object.entries(data).forEach(([id, item]) => {
+      const row = document.createElement("tr");
+      row.classList.add("hover:bg-gray-100");
+      row.innerHTML = `
+        <td class="py-2 px-4 border-b">${item.nama}</td>
+        <td class="py-2 px-4 border-b">${item.barcode}</td>
+        <td class="py-2 px-4 border-b">${item.jumlah}</td>
+        <td class="py-2 px-4 border-b">Rp ${item.harga_jual.toLocaleString()}</td>
+        <td class="py-2 px-4 border-b">Rp ${item.harga_modal.toLocaleString()}</td>
+        <td class="py-2 px-4 border-b">${item.terjual}</td>
+        <td class="py-2 px-4 border-b flex gap-2">
+          <button
+            class="bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500 transition"
+            onclick="openEditModal('${id}')"
+          >
+            Edit
+          </button>
+          <button
+            class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
+            onclick="deleteItem('${id}')"
+          >
+            Hapus
+          </button>
+        </td>
+      `;
+      stokBody.appendChild(row);
+    });
+  });
+
+  // Buka modal dan isi data
+  window.openEditModal = async function (id) {
+    const itemSnapshot = await get(ref(db, "stok/" + id));
+    if (!itemSnapshot.exists()) {
+      alert("Data tidak ditemukan");
+      return;
+    }
+    const item = itemSnapshot.val();
+
+    document.getElementById("editId").value = id;
+    document.getElementById("editNama").value = item.nama;
+    document.getElementById("editBarcode").value = item.barcode;
+    document.getElementById("editJumlah").value = item.jumlah;
+    document.getElementById("editHargaJual").value = item.harga_jual;
+    document.getElementById("editHargaModal").value = item.harga_modal;
+    document.getElementById("editTerjual").value = item.terjual;
+
+    editModal.classList.remove("hidden");
+  };
+
+  // Tutup modal
+  window.closeModal = function () {
+    editModal.classList.add("hidden");
+  };
+
+  // Submit form update data ke Firebase
+  editForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById("editId").value;
+    const updatedData = {
+      nama: document.getElementById("editNama").value,
+      barcode: document.getElementById("editBarcode").value,
+      jumlah: parseInt(document.getElementById("editJumlah").value),
+      harga_jual: parseInt(document.getElementById("editHargaJual").value),
+      harga_modal: parseInt(document.getElementById("editHargaModal").value),
+      terjual: parseInt(document.getElementById("editTerjual").value),
+    };
+
+    try {
+      await update(ref(db, "stok/" + id), updatedData);
+      alert("Data berhasil diupdate!");
+      closeModal();
+    } catch (error) {
+      alert("Gagal update data: " + error.message);
+    }
+  });
+
+  // Hapus item stok
+  window.deleteItem = async function (id) {
+    if (confirm("Apakah Anda yakin ingin menghapus item ini?")) {
+      await remove(ref(db, "stok/" + id));
+    }
+  };
+
+  // Fungsi pencarian realtime di tabel
+function searchItem() {
+  const filter = document.getElementById("searchInput").value.toLowerCase();
+  const rows = document.getElementById("stokBody").getElementsByTagName("tr");
+  const notFoundMessage = document.getElementById("notFoundMessage");
+
+  let visibleCount = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const nama = rows[i].getElementsByTagName("td")[0].textContent.toLowerCase();
+    const barcode = rows[i].getElementsByTagName("td")[1].textContent.toLowerCase();
+    
+    const match = nama.includes(filter) || barcode.includes(filter);
+    rows[i].style.display = match ? "" : "none";
+
+    if (match) visibleCount++;
+  }
+
+  if (visibleCount === 0) {
+    notFoundMessage.innerHTML = "Data tidak ditemukan.";
+    notFoundMessage.style.display = "block";
+  } else {
+    notFoundMessage.innerHTML = "";
+    notFoundMessage.style.display = "none";
+  }
+}
+window.searchItem = searchItem;
+
+</script>
+</body>
+</html>

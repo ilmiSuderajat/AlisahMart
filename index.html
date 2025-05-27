@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Alisah Mart - Your one-stop online shopping destination.">
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <!-- Firebase App (core SDK) -->
+  <title>Alisah Mart</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+</head>
+<body>
+    <section class="navbar">
+           <div class="strip1">
+       </div>
+           <div class="strip2">
+            <h1>Alisah Mart</h1>
+       </div>
+           <div class="strip3" id="clock">
+     </div>
+</section>
+          
+
+
+            <section class="textfiled">
+                  <div class="row">
+                    <p>Total Stock Barang:</p>
+                    <div id="stok-barang" class="box"></div>
+                  </div>
+                  <div class="row">
+                    <p>Barang Terjual Hari Ini:</p>
+                    <div id="barang-terjual" class="box"></div>
+                  </div>
+                  <div class="row">
+                    <p>Estimasi Keuntungan:</p>
+                    <div id="total-keuntungan" class="box"></div>
+                  </div>
+                  <div class="row">
+                  <p>Total Duit Yang Terkumpul:</p>
+                    <div id="total-modal" class="box"></div>
+                  </div>
+          </section>
+
+
+          <section class="container">
+  <div class="card"><i class="fas fa-plus-circle"></i><span>Tambah Stok</span></div>
+  <a href="laporanPenjualan.html"><div class="card"><i class="fas fa-chart-line"></i><span>Laporan Penjualan</span></div></a>
+  <a href="cariBarang.html"><div class="card"><i class="fas fa-fire"></i><span>Cari Barang</span></div></a>
+  <a href="bayar.html"><div class="card"><i class="fas fa-hourglass-half"></i><span>Mode Kasir</span></div></a>
+  <div class="card"><i class="fas fa-wallet"></i><span>Total Modal Dari selurh Barang</span></div>
+  <div class="card" id="logoutBtn"><i class="fas fa-ellipsis-h"></i><span>Keluar Kasir</span></div>
+
+</section>
+
+
+
+<!-- Modal -->
+<div id="scannerModal" class="modal">
+  <div class="modal-content">
+    <span class="close-scanner">&times;</span>
+    <div id="reader"></div>
+    <div id="scan-result"></div>
+    <form id="formStok" style="display: none; flex-direction: column;">
+      <input type="text" id="namaBarang" placeholder="Nama Barang" required />
+      <input type="number" id="hargaModal" placeholder="Harga Modal" required />
+      <input type="number" id="hargaJual" placeholder="Harga Jual" required />
+      <input type="number" id="jumlahStok" placeholder="Masukan Jumlah Stok" required />
+      <input type="text" id="tanggalInput" readonly />
+      <button type="submit">Simpan</button>
+    </form>
+  </div>
+</div>
+
+    
+    <script>
+  function updateClock() {
+    const now = new Date();
+
+    const hari = now.getDate().toString().padStart(2, '0');
+    const bulanNama = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const bulan = bulanNama[now.getMonth()];
+    const tahun = now.getFullYear();
+
+    const jam = now.getHours().toString().padStart(2, '0');
+    const menit = now.getMinutes().toString().padStart(2, '0');
+    const detik = now.getSeconds().toString().padStart(2, '0');
+
+    const timeString = `${hari} ${bulan} ${tahun} — ${jam}:${menit}:${detik}`;
+    document.getElementById('clock').textContent = timeString;
+  }
+
+  setInterval(updateClock, 1000);
+  updateClock();
+
+</script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getDatabase, ref, push, set, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyC7bRbulHJ3D1VWpooXWka42MhOuIKgrVU",
+        authDomain: "alisahmart-f8a62.firebaseapp.com",
+        databaseURL: "https://alisahmart-f8a62-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "alisahmart-f8a62",
+        storageBucket: "alisahmart-f8a62.appspot.com",
+        messagingSenderId: "852965892731",
+        appId: "1:852965892731:web:89a310bc1794aaf904b8de",
+        measurementId: "G-LPBH8TXQEM"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Update total stock display
+    function updateStockDisplay() {
+        const stokDiv = document.getElementById("stok-barang");
+        const stokRef = ref(db, 'stok/');
+
+        onValue(stokRef, (snapshot) => {
+            let totalStok = 0;
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const data = childSnapshot.val();
+                    totalStok += parseInt(data.jumlah) || 0;
+                });
+            }
+            stokDiv.textContent = totalStok.toLocaleString();
+            console.log("Stock updated:", totalStok);
+        }, (error) => {
+            console.error("Error reading stock data:", error);
+            stokDiv.textContent = "Error";
+        });
+    }
+
+      // Update total keuntungan dan barang terjual
+function updateTotalKeuntunganDanTerjual() {
+    const keuntunganDiv = document.getElementById("total-keuntungan");
+    const terjualDiv = document.getElementById("barang-terjual");
+    const modalDiv = document.getElementById("total-modal"); // pastikan ada elemen ini di HTML
+
+    // Format tanggal hari ini: yyyy-mm-dd
+    const now = new Date();
+    const tanggalHariIni = now.toISOString().slice(0, 10);
+
+    const penjualanRef = ref(db, `penjualan_hari_ini/${tanggalHariIni}`);
+
+    onValue(penjualanRef, (snapshot) => {
+        if (!snapshot.exists()) {
+            keuntunganDiv.textContent = "0";
+            terjualDiv.textContent = "0";
+            modalDiv.textContent = "0";
+            return;
+        }
+
+        const data = snapshot.val();
+        let totalKeuntungan = 0;
+        let totalTerjual = 0;
+        let totalModal = 0;
+
+        Object.values(data).forEach(item => {
+            totalKeuntungan += item.keuntungan || 0;
+            totalTerjual += item.jumlah || 0;
+            totalModal += item.total || 0;  // tambah ini
+        });
+
+        keuntunganDiv.textContent = totalKeuntungan.toLocaleString();
+        terjualDiv.textContent = totalTerjual.toLocaleString();
+        modalDiv.textContent = totalModal.toLocaleString();
+    }, (error) => {
+        console.error("Error membaca data penjualan:", error);
+        keuntunganDiv.textContent = "Error";
+        terjualDiv.textContent = "Error";
+        modalDiv.textContent = "Error";
+    });
+}
+
+    // Simpan data stok ke Firebase
+    function simpanKeFirebase(barcode, nama, modal, jual, jumlah, tanggal) {
+        const barangRef = ref(db, 'stok/');
+        const newRef = push(barangRef);
+
+        set(newRef, {
+            barcode: barcode,
+            nama: nama,
+            harga_modal: modal,
+            harga_jual: jual,
+            jumlah: jumlah,
+            tanggal: tanggal
+        }).then(() => {
+            alert("✅ Data berhasil disimpan ke Firebase!");
+        }).catch((error) => {
+            console.error("❌ Gagal menyimpan:", error);
+            alert("❌ Gagal menyimpan: " + error.message);
+        });
+    }
+
+    // DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+        updateStockDisplay();
+        updateTotalKeuntunganDanTerjual();
+
+        // Set tanggal input default
+        const tanggalInputEl = document.getElementById("tanggalInput");
+        if (tanggalInputEl) {
+            tanggalInputEl.value = new Date().toISOString().slice(0, 10);
+        }
+
+        // Event tombol tambah stok
+        const tambahStokBtn = document.querySelector(".card:nth-child(1)");
+        if (tambahStokBtn) {
+            tambahStokBtn.addEventListener("click", function() {
+                const scannerModal = document.getElementById("scannerModal");
+                if (scannerModal) {
+                    scannerModal.style.display = "block";
+                }
+            });
+        }
+
+        // Tombol tutup modal scanner
+        const closeScanner = document.querySelector(".close-scanner");
+        if (closeScanner) {
+            closeScanner.addEventListener("click", function() {
+                const scannerModal = document.getElementById("scannerModal");
+                if (scannerModal) {
+                    scannerModal.style.display = "none";
+                }
+            });
+        }
+
+        // Form submit stok
+        const formStok = document.getElementById("formStok");
+        if (formStok) {
+            formStok.addEventListener("submit", function(e) {
+                e.preventDefault();
+
+                try {
+                    const nama = document.getElementById("namaBarang").value.trim();
+                    const modal = parseInt(document.getElementById("hargaModal").value);
+                    const jual = parseInt(document.getElementById("hargaJual").value);
+                    const jumlah = parseInt(document.getElementById("jumlahStok").value);
+                    const tanggalInputEl = document.getElementById("tanggalInput");
+                    const tanggal = tanggalInputEl ? (tanggalInputEl.value || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10);
+                    const barcode = window.kodeBarangQR || "MANUAL";
+
+                    if (!nama || isNaN(modal) || modal <= 0 || isNaN(jual) || jual <= 0 || isNaN(jumlah) || jumlah <= 0) {
+                        alert("❗ Mohon lengkapi semua isian dengan nilai yang valid.");
+                        return;
+                    }
+
+                    simpanKeFirebase(barcode, nama, modal, jual, jumlah, tanggal);
+                    this.reset();
+
+                    const scannerModal = document.getElementById("scannerModal");
+                    if (scannerModal) scannerModal.style.display = "none";
+                } catch (err) {
+                    console.error("Kesalahan saat submit form:", err);
+                    alert("❗ Terjadi kesalahan: " + err.message);
+                }
+            });
+        }
+    });
+
+</script>
+<script type="module" src="index.js"></script>
+<script type="module" src="logout.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

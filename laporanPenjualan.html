@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Penjualan</title>
+  <style>
+   .table-container {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px; /* agar tidak terlalu sempit */
+  }
+
+  th, td {
+    padding: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    text-align: left;
+  }
+
+  thead {
+    background-color: #f2f2f2;
+  }
+
+  @media (max-width: 600px) {
+    th, td {
+      font-size: 12px;
+      padding: 6px;
+    }
+  }
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    input, button {
+      padding: 8px;
+      margin-bottom: 12px;
+    }
+    input {
+      width: 200px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 16px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    th {
+      background-color: #eee;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Laporan Penjualan</h2>
+
+<label>Cari Tanggal (dd/mm/yyyy):</label><br>
+<input type="text" id="input-tanggal" placeholder="Contoh: 27/05/2025">
+<button onclick="filterTanggalLaporan()">Cari</button>
+
+<div id="laporan-container">Memuat data...</div>
+<button onclick="downloadPDF()">Download PDF</button>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
+
+  const firebaseConfig = {
+        apiKey: "AIzaSyC7bRbulHJ3D1VWpooXWka42MhOuIKgrVU",
+        authDomain: "alisahmart-f8a62.firebaseapp.com",
+        databaseURL: "https://alisahmart-f8a62-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "alisahmart-f8a62",
+        storageBucket: "alisahmart-f8a62.appspot.com",
+        messagingSenderId: "852965892731",
+        appId: "1:852965892731:web:89a310bc1794aaf904b8de",
+        measurementId: "G-LPBH8TXQEM"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  let semuaPenjualan = [];
+
+  async function ambilSemuaData() {
+    const container = document.getElementById("laporan-container");
+    container.textContent = "Memuat data...";
+    try {
+      const snap = await get(ref(db, "penjualan_hari_ini"));
+      if (!snap.exists()) {
+        container.textContent = "Belum ada data penjualan.";
+        return;
+      }
+
+      semuaPenjualan = [];
+      const data = snap.val();
+
+      for (const [tanggal, items] of Object.entries(data)) {
+        for (const item of Object.values(items)) {
+          semuaPenjualan.push({
+            ...item,
+            tanggalFirebase: tanggal
+          });
+        }
+      }
+
+      const digabung = gabungPerNamaTanggal(semuaPenjualan);
+      renderTabel(digabung);
+    } catch (e) {
+      container.textContent = "Gagal memuat data.";
+      console.error(e);
+    }
+  }
+
+  function gabungPerNamaTanggal(data) {
+    const hasil = {};
+
+    data.forEach(item => {
+      const key = item.nama + "_" + item.tanggalFirebase;
+
+      if (!hasil[key]) {
+        hasil[key] = {
+          nama: item.nama,
+          harga: Number(item.harga) || 0,
+          keuntungan: Number(item.keuntungan) || 0,
+          tanggal: item.tanggalFirebase,
+          bulan: item.bulan,
+          tahun: item.tahun,
+          jam: item.jam,
+          jumlah: 1
+        };
+      } else {
+        hasil[key].harga += Number(item.harga) || 0;
+        hasil[key].keuntungan += Number(item.keuntungan) || 0;
+        hasil[key].jam = item.jam; // ambil jam terakhir (opsional)
+        hasil[key].jumlah += 1;
+      }
+    });
+
+    return Object.values(hasil);
+  }
+
+function renderTabel(data) {
+  const container = document.getElementById("laporan-container");
+
+  if (data.length === 0) {
+    container.innerHTML = "<p>Data tidak ditemukan.</p>";
+    return;
+  }
+
+  let totalTerjual = 0;
+  let totalKeuntungan = 0;
+  let totalModal = 0;
+  let totalHarga = 0;
+
+  const rows = data.map(d => {
+    const modal = d.harga - d.keuntungan;
+    totalTerjual += d.jumlah;
+    totalKeuntungan += d.keuntungan;
+    totalModal += modal;
+    totalHarga += d.harga;
+
+    return `
+      <tr>
+  <td data-label="Nama">${d.nama}</td>
+  <td data-label="Jam">${d.jam}</td>
+  <td data-label="Total Terjual">${d.jumlah}</td>
+  <td data-label="Total Harga">Rp ${d.harga.toLocaleString()}</td>
+  <td data-label="Keuntungan">Rp ${d.keuntungan.toLocaleString()}</td>
+  <td data-label="Modal">Rp ${(d.harga - d.keuntungan).toLocaleString()}</td>
+  <td data-label="Bulan">${d.bulan}</td>
+  <td data-label="Tahun">${d.tahun}</td>
+  <td data-label="Tanggal">${d.tanggal}</td>
+</tr>
+
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Jam</th>
+          <th>Total Terjual</th>
+          <th>Total Harga</th>
+          <th>Total Keuntungan</th>
+          <th>Total Modal</th>
+          <th>Bulan</th>
+          <th>Tahun</th>
+          <th>Tanggal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="2">Total</th>
+          <th>${totalTerjual}</th>
+          <th>Rp ${totalHarga.toLocaleString()}</th>
+          <th>Rp ${totalKeuntungan.toLocaleString()}</th>
+          <th>Rp ${totalModal.toLocaleString()}</th>
+          <th colspan="3"></th>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+}
+
+  window.filterTanggalLaporan = function () {
+    const input = document.getElementById("input-tanggal").value.trim();
+    const [dd, mm, yyyy] = input.split("/");
+
+    if (!dd || !mm || !yyyy) {
+      const digabung = gabungPerNamaTanggal(semuaPenjualan);
+      renderTabel(digabung);
+      return;
+    }
+
+    const tanggalCari = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    const hasilFilter = semuaPenjualan.filter(d => d.tanggalFirebase === tanggalCari);
+    const digabung = gabungPerNamaTanggal(hasilFilter);
+
+    renderTabel(digabung);
+  };
+
+  document.getElementById("input-tanggal").addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      filterTanggalLaporan();
+    }
+  });
+
+  ambilSemuaData();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+  function downloadPDF() {
+    const element = document.getElementById("laporan-container");
+    const opt = {
+      filename:     'laporan-penjualan.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  }
+</script>
+
+</body>
+</html>

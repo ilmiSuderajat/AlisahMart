@@ -1,0 +1,271 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  text-decoration: none;
+}
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f2e9e4; /* Warna netral elegan */
+  color: #22223b; /* Warna teks gelap */
+}
+.navbar {
+  width: 100%;
+  height: 150px;
+  font-family: 'Courier New', Courier, monospace;
+  color: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.strip1 {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4a4e69; /* Ungu keabu elegan */
+  box-shadow: 0 0 8px rgba(74, 78, 105, 0.5);	
+}
+
+.strip2 {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #22223b;
+  border: 1px solid #22223b;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  font-size: 1.5em;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  font-weight: bold;
+  background-color: #f2e9e4; /* Netral elegan */
+}
+
+.strip3 {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4a4e69;
+}
+
+.textfiled {
+  width: 100%;
+  padding:15px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  font-size: 1.5em;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: space-between;
+  background-color: #ffffff;
+  padding: 10px 15px;
+  border-radius: 10px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  font-family: 'Poppins', sans-serif;
+  color: #8e44ad;
+  font-weight: 500;
+  color: #22223b;
+}
+
+.row p {
+  flex: 1;
+  font-size: 0.8em;
+}
+
+.box {
+  width: 40%;
+  height: 30px;
+  display: flex;
+  text-align: left;
+  padding: 10px;
+  align-items: center;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.1);
+}
+.container {
+  width: 100%;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  color: #8e44ad;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  text-align: center;
+  padding: 10px;
+}
+
+.card i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: #8e44ad;
+}
+
+.card span {
+  font-size: 16px;
+}
+
+/* Animasi Hover */
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Modal scanner sama style-nya */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  backdrop-filter: blur(3px);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 700px;
+  height: 80vh;
+  margin: 5vh auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column; /* kamera dan form sejajar */
+  gap: 20px;
+  padding: 20px;
+}
+
+.scanner-form-wrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 20px;
+}
+
+/* Kamera scanner di kiri */
+#reader {
+  width: 350px;
+  height: 350px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px #8e44ad;
+  background: #000;
+}
+
+/* Form di kanan, overlay tetap di modal */
+#formStok {
+  width: 100%;
+  max-width: 400px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+
+.updated {
+  transition: all 0.3s ease;
+  background-color: #e6f7ff;
+  transform: scale(1.05);
+}
+/* Close button */
+.close-scanner {
+  position: absolute;
+  top: 10px; right: 15px;
+  font-size: 50px;
+  cursor: pointer;
+  color: #e8dfeb;
+  display: block;
+}
+
+.close-scanner:hover {
+  color: #333;
+}
+form input {
+  width: 100%;
+  height: 400px;
+  padding: 15px;
+  font-size: 1.5em;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+form button {
+  padding: 10px 20px;
+  border: none;
+  padding: 15px;
+  background-color: #8e44ad;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+#keranjangBelanja { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+#keranjangBelanja ul { list-style: none; padding: 0; }
+#keranjangBelanja li { margin: 5px 0; }
+.barang-info button { margin-top: 5px; padding: 5px 10px; cursor: pointer; }
+
+
+@media screen and (min-width: 1080px) {
+  .navbar {
+    width: 100%;
+    height: 200px;
+    margin: 0 auto;
+  }
+  .strip1, .strip2, .strip3 {
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  .textfiled {
+    width: 50%;
+    text-align: center;
+    font-size: 1.5em;
+    margin: auto;
+  }
+  .row {
+    flex-direction: column;
+    align-items: center;
+    font-size: 1.5em;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .box {
+    width: 100%;
+    height: auto;
+    padding: 20px;
+    text-align: center;
+    justify-content: center;
+  }
+  .container {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  .card {
+    height: 250px;
+    padding: 20px;
+  }
+  
+}
