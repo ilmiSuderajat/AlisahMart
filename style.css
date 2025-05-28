@@ -231,7 +231,7 @@ form button {
 @media screen and (min-width: 1080px) {
   .navbar {
     width: 100%;
-    height: 200px;
+    height: 150px;
     margin: 0 auto;
   }
   .strip1, .strip2, .strip3 {
@@ -240,15 +240,15 @@ form button {
     padding: 20px;
   }
   .textfiled {
-    width: 50%;
+    width: 80%;
     text-align: center;
-    font-size: 1.5em;
+    font-size: 0.8em;
     margin: auto;
   }
   .row {
     flex-direction: column;
     align-items: center;
-    font-size: 1.5em;
+    font-size: 0.8em;
     align-items: center;
     justify-content: center;
     text-align: center;
