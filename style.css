@@ -242,13 +242,13 @@ form button {
   .textfiled {
     width: 80%;
     text-align: center;
-    font-size: 0.8em;
+    font-size: 1.5em;
     margin: auto;
   }
   .row {
     flex-direction: column;
     align-items: center;
-    font-size: 0.8em;
+    font-size: 1.5em;
     align-items: center;
     justify-content: center;
     text-align: center;
