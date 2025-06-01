@@ -8,6 +8,13 @@ const errorEl = document.getElementById("error");
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   errorEl.textContent = "";
+
+  // ✅ Buka iklan CPM di tab baru (hanya saat user submit login)
+  window.open(
+    "https://www.profitableratecpm.com/cwu9387em?key=02bfbeb34b378c0698be689bafdc7f94",
+    "_blank"
+  );
+
   const email = form.email.value;
   const password = form.password.value;
 
